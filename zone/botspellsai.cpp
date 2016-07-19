@@ -145,8 +145,15 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 							if(GetNumberNeedingHealedInGroup(60, false) >= 3)
 								botSpell = GetBestBotSpellForGroupHeal(this);
 
-							if(botSpell.SpellId == 0)
-								botSpell = GetBestBotSpellForPercentageHeal(this);
+							// Tank以外はFastHeal
+							if(botSpell.SpellId == 0) {
+								uint8 targetClass = tar->GetClass()
+								if(targetClass == WARRIOR || targetClass == PALADIN || targetClass == SHADOWKNIGHT || targetClass == BERSERKER) {
+									botSpell = GetBestBotSpellForPercentageHeal(this);
+								} else {
+									botSpell = GetBestBotSpellForFastHeal(this);
+								}
+							}
 						}
 						else if(hpr >= 70 && hpr < 95){
 							if(GetNumberNeedingHealedInGroup(80, false) >= 3)
