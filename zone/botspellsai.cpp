@@ -112,20 +112,21 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 				uint8 hpr = (uint8)tar->GetHPRatio();
 				bool hasAggro = false;
 				bool isPrimaryHealer = false;
+				uint8 targetClass = tar->GetClass();
 
 				if(HasGroup()) {
 					isPrimaryHealer = IsGroupPrimaryHealer();
 				}
 
 				if(hpr < 95 || (tar->IsClient() && (hpr < 95)) || (botClass == BARD)) {
-					if(tar->GetClass() == NECROMANCER) {
+					if(targetClass == NECROMANCER) {
 						// Give necromancers a chance to go lifetap something or cleric can spend too much mana on a necro
 						if(hpr >= 40) {
 							break;
 						}
 					}
 
-					if(tar->GetClass() == SHAMAN) {
+					if(targetClass == SHAMAN) {
 						// Give shaman the chance to canni without wasting the cleric's mana
 						if(hpr >= 80) {
 							break;
@@ -147,7 +148,6 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 
 							// Tank以外はFastHeal
 							if(botSpell.SpellId == 0) {
-								uint8 targetClass = tar->GetClass()
 								if(targetClass == WARRIOR || targetClass == PALADIN || targetClass == SHADOWKNIGHT || targetClass == BERSERKER) {
 									botSpell = GetBestBotSpellForPercentageHeal(this);
 								} else {
@@ -159,8 +159,16 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 							if(GetNumberNeedingHealedInGroup(80, false) >= 3)
 								botSpell = GetBestBotSpellForGroupHealOverTime(this);
 
-							if(hasAggro)
-								botSpell = GetBestBotSpellForPercentageHeal(this);
+							if(hasAggro) {
+								// Tank以外はHeal
+								if(botSpell.SpellId == 0) {
+									if(targetClass == WARRIOR || targetClass == PALADIN || targetClass == SHADOWKNIGHT || targetClass == BERSERKER) {
+										botSpell = GetBestBotSpellForPercentageHeal(this);
+									} else {
+										botSpell = GetBestBotSpellForRegularSingleTargetHeal(this);
+									}
+								}
+							}
 						}
 						else {
 							if(!tar->FindType(SE_HealOverTime))

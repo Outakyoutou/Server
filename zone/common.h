@@ -35,6 +35,10 @@
 #define ARCHETYPE_CASTER	2
 #define ARCHETYPE_MELEE		3
 
+#define ROLETYPE_TANK	1
+#define ROLETYPE_HEALER	2
+#define ROLETYPE_NUKER	3
+
 #define CON_GREEN		2
 #define CON_LIGHTBLUE	18
 #define CON_BLUE		4

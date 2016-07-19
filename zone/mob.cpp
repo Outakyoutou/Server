@@ -854,6 +854,32 @@ char Mob::GetCasterClass() const {
 	}
 }
 
+uint8 Mob::GetRoletype() const {
+	switch(class_)
+	{
+	case PALADIN:
+	case PALADINGM:
+	case WARRIOR:
+	case WARRIORGM:
+	case SHADOWKNIGHT:
+	case SHADOWKNIGHTGM:
+	case BERSERKER:
+	case BERSERKERGM:
+		return ROLETYPE_TANK;
+		break;
+	case CLERIC:
+	case CLERICGM:
+	case DRUID:
+	case DRUIDGM:
+	case SHAMAN:
+	case SHAMANGM:
+		return ROLETYPE_HEALER;
+		break;
+	default:
+		return ROLETYPE_NUKER;
+		break;
+	}
+}
 uint8 Mob::GetArchetype() const {
 	switch(class_)
 	{

@@ -565,6 +565,7 @@ public:
 	bool IsWarriorClass() const;
 	char GetCasterClass() const;
 	uint8 GetArchetype() const;
+	uint8 GetRoletype() const;
 	void SetZone(uint32 zone_id, uint32 instance_id);
 	void ShowStats(Client* client);
 	void ShowBuffs(Client* client);
