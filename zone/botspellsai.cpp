@@ -134,7 +134,7 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 					}
 
 					// Evaluate the situation
-					if((IsEngaged()) && ((botClass == CLERIC) || (botClass == DRUID) || (botClass == SHAMAN) || (botClass == PALADIN))) {
+					if((IsEngaged()) && (tar->GetRoletype() == ROLETYPE_HEALER)) {
 						if(tar->GetTarget() && tar->GetTarget()->GetHateTop() && tar->GetTarget()->GetHateTop() == tar) {
 							hasAggro = true;
 						}
@@ -142,13 +142,16 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 						if(hpr < 35) {
 							botSpell = GetBestBotSpellForFastHeal(this);
 						}
-						else if(hpr >= 35 && hpr < 70){
+						else if(hpr >= 50 && hpr < 70){
+							botSpell = GetBestBotSpellForRegularSingleTargetHeal(this);
+						}
+						else if(hpr >= 35 && hpr < 50){
 							if(GetNumberNeedingHealedInGroup(60, false) >= 3)
 								botSpell = GetBestBotSpellForGroupHeal(this);
 
 							// Tank以外はFastHeal
 							if(botSpell.SpellId == 0) {
-								if(targetClass == WARRIOR || targetClass == PALADIN || targetClass == SHADOWKNIGHT || targetClass == BERSERKER) {
+								if(tar->GetRoletype() == ROLETYPE_TANK) {
 									botSpell = GetBestBotSpellForPercentageHeal(this);
 								} else {
 									botSpell = GetBestBotSpellForFastHeal(this);
@@ -162,9 +165,7 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 							if(hasAggro) {
 								// Tank以外はHeal
 								if(botSpell.SpellId == 0) {
-									if(targetClass == WARRIOR || targetClass == PALADIN || targetClass == SHADOWKNIGHT || targetClass == BERSERKER) {
-										botSpell = GetBestBotSpellForPercentageHeal(this);
-									} else {
+									if(tar->GetRoletype() != ROLETYPE_TANK) {
 										botSpell = GetBestBotSpellForRegularSingleTargetHeal(this);
 									}
 								}
@@ -175,7 +176,7 @@ bool Bot::AICastSpell(Mob* tar, uint8 iChance, uint16 iSpellTypes) {
 								botSpell = GetBestBotSpellForHealOverTime(this);
 						}
 					}
-					else if ((botClass == CLERIC) || (botClass == DRUID) || (botClass == SHAMAN) || (botClass == PALADIN)) {
+					else if (tar->GetRoletype() == ROLETYPE_HEALER) {
 						if(GetNumberNeedingHealedInGroup(40, true) >= 2){
 							botSpell = GetBestBotSpellForGroupCompleteHeal(this);
 
