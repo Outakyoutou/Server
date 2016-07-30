@@ -230,7 +230,7 @@ MARK_AS_ADVANCED(EQEMU_STREAM_SEND_RATE EQEMU_STREAM_DECAY_RATE EQEMU_STREAM_RET
 OPTION(EQEMU_DEPOP_INVALIDATES_CACHE "#repop invalidates the npc_types cache (will cause a larger database hit on #repop but is more convienent)." ON)
 
 #Bots are a compile time option so on/off
-OPTION(EQEMU_ENABLE_BOTS "Enable Bots" OFF)
+OPTION(EQEMU_ENABLE_BOTS "Enable Bots" ON)
 
 #Disable entire _mlog system (excludes trade/command logs)
 OPTION(EQEMU_DISABLE_LOGSYS "Disable Logging INI System" ON)
