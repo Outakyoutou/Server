@@ -100,23 +100,23 @@ typedef enum {
 /* 09 */	ST_Animal = 0x09,
 /* 10 */	ST_Undead = 0x0a,
 /* 11 */	ST_Summoned = 0x0b,
-/* 12 */	// NOT USED
+/* 12 */	// NOT USED error is 218 (This spell only works on things that are flying.)
 /* 13 */	ST_Tap = 0x0d,
 /* 14 */	ST_Pet = 0x0e,
 /* 15 */	ST_Corpse = 0x0f,
 /* 16 */	ST_Plant = 0x10,
 /* 17 */	ST_Giant = 0x11, //special giant
 /* 18 */	ST_Dragon = 0x12, //special dragon
-/* 19 */	// NOT USED
+/* 19 */	// NOT USED error is 227 (This spell only works on specific coldain.)
 /* 20 */	ST_TargetAETap = 0x14,
-/* 21 */	// NOT USED
-/* 22 */	// NOT USED
-/* 23 */	// NOT USED
+/* 21 */	// NOT USED same switch case as ST_Undead
+/* 22 */	// NOT USED same switch case as ST_Summoned
+/* 23 */	// NOT USED same switch case as ST_Animal
 /* 24 */	ST_UndeadAE = 0x18,
 /* 25 */	ST_SummonedAE = 0x19,
 /* 26 */	// NOT USED
-/* 27 */	// NOT USED
-/* 28 */	// NOT USED
+/* 27 */	// NOT USED error is 223 (This spell only works on insects.)
+/* 28 */	// NOT USED error is 223 (This spell only works on insects.)
 /* 29 */	// NOT USED
 /* 30 */	// NOT USED
 /* 31 */	// NOT USED
@@ -735,8 +735,8 @@ struct SPDat_Spell_Struct
 /* 180 */	int spell_category; // -- GLOBAL_GROUP
 /* 181 */	//int pvp_duration; // buffdurationformula for PvP -- PVP_DURATION
 /* 182 */	//int pvp_duration_cap; // buffduration for PvP -- PVP_DURATION_CAP
-/* 183 */	//int pcnpc_only_flag; // valid values are 0, 1, and 2 -- PCNPC_ONLY_FLAG
-/* 184 */	//bool cast_not_standing; // this is checked in the client's EQ_Spell::IsCastWhileInvisSpell -- CAST_NOT_STANDING
+/* 183 */	//int pcnpc_only_flag; // valid values are 0, 1 = PCs (and mercs), and 2 = NPCs (and not mercs) -- PCNPC_ONLY_FLAG
+/* 184 */	bool cast_not_standing; // this is checked in the client's EQ_Spell::IsCastWhileInvisSpell, this also blocks SE_InterruptCasting from affecting this spell -- CAST_NOT_STANDING
 /* 185 */	bool can_mgb; // 0=no, -1 or 1 = yes -- CAN_MGB
 /* 186 */	int dispel_flag; // -- NO_DISPELL
 /* 187 */	//int npc_category; // -- NPC_MEM_CATEGORY
@@ -903,6 +903,8 @@ uint32 GetPartialMeleeRuneAmount(uint32 spell_id);
 uint32 GetPartialMagicRuneAmount(uint32 spell_id);
 bool NoDetrimentalSpellAggro(uint16 spell_id);
 bool IsStackableDot(uint16 spell_id);
+bool IsCastWhileInvis(uint16 spell_id);
+bool IsEffectIgnoredInStacking(int spa);
 
 int CalcPetHp(int levelb, int classb, int STA = 75);
 const char *GetRandPetName();

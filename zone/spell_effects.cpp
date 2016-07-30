@@ -24,6 +24,7 @@
 #include "../common/rulesys.h"
 #include "../common/skills.h"
 #include "../common/spdat.h"
+#include "../common/data_verification.h"
 
 #include "quest_parser_collection.h"
 #include "string_ids.h"
@@ -2995,6 +2996,7 @@ bool Mob::SpellEffect(Mob* caster, uint16 spell_id, float partial, int level_ove
 			case SE_PetMeleeMitigation:
 			case SE_SkillProc:
 			case SE_SkillProcSuccess:
+			case SE_SpellResistReduction:
 			{
 				break;
 			}
@@ -3142,10 +3144,23 @@ snare has both of them negative, yet their range should work the same:
 			result = updownsign * (ubase + (caster_level * 4)); break;
 
 		case 107:
-			//Used on Reckless Strength, I think it should decay over time
-			result = updownsign * (ubase + (caster_level / 2)); break;
+		{
+			int ticdif = CalcBuffDuration_formula(caster_level, spells[spell_id].buffdurationformula, spells[spell_id].buffduration) - std::max((ticsremaining - 1), 0);
+			if (ticdif < 0)
+				ticdif = 0;
+			result = updownsign * (ubase - ticdif);
+			degenerating_effects = true;
+			break;
+		}
 		case 108:
-			result = updownsign * (ubase + (caster_level / 3)); break;
+		{
+			int ticdif = CalcBuffDuration_formula(caster_level, spells[spell_id].buffdurationformula, spells[spell_id].buffduration) - std::max((ticsremaining - 1), 0);
+			if (ticdif < 0)
+				ticdif = 0;
+			result = updownsign * (ubase - (2 * ticdif));
+			degenerating_effects = true;
+			break;
+		}
 		case 109:	// confirmed 2/6/04
 			result = updownsign * (ubase + (caster_level / 4)); break;
 
@@ -3190,16 +3205,25 @@ snare has both of them negative, yet their range should work the same:
 
 		case 119:	// confirmed 2/6/04
 			result = ubase + (caster_level / 8); break;
+		case 120:
+		{
+			int ticdif = CalcBuffDuration_formula(caster_level, spells[spell_id].buffdurationformula, spells[spell_id].buffduration) - std::max((ticsremaining - 1), 0);
+			if (ticdif < 0)
+				ticdif = 0;
+			result = updownsign * (ubase - (5 * ticdif));
+			degenerating_effects = true;
+			break;
+		}
 		case 121:	// corrected 2/6/04
 			result = ubase + (caster_level / 3); break;
 		case 122:
 		{
-			// May need to account for duration focus effects
-			int ticdif = spells[spell_id].buffduration - (ticsremaining - 1);
+			int ticdif = CalcBuffDuration_formula(caster_level, spells[spell_id].buffdurationformula, spells[spell_id].buffduration) - std::max((ticsremaining - 1), 0);
 			if(ticdif < 0)
 				ticdif = 0;
 
 			result = updownsign * (ubase - (12 * ticdif));
+			degenerating_effects = true;
 			break;
 		}
 		case 123:	// added 2/6/04
@@ -3306,11 +3330,12 @@ snare has both of them negative, yet their range should work the same:
 			{
 				// These work like splurt, accept instead of being hard coded to 12, it is formula - 1000.
 				// Formula 1999 seems to have a slightly different effect, so is not included here
-				int ticdif = spells[spell_id].buffduration - (ticsremaining - 1);
+				int ticdif = CalcBuffDuration_formula(caster_level, spells[spell_id].buffdurationformula, spells[spell_id].buffduration) - std::max((ticsremaining - 1), 0);
 				if(ticdif < 0)
 					ticdif = 0;
 
 				result = updownsign * (ubase - ((formula - 1000) * ticdif));
+				degenerating_effects = true;
 			}
 			else if((formula >= 2000) && (formula <= 2650))
 			{
@@ -3369,7 +3394,7 @@ void Mob::BuffProcess()
 				{
 					--buffs[buffs_i].ticsremaining;
 
-					if ((buffs[buffs_i].ticsremaining == 0 && !(IsShortDurationBuff(buffs[buffs_i].spellid) || IsBardSong(buffs[buffs_i].spellid))) || buffs[buffs_i].ticsremaining < 0) {
+					if (buffs[buffs_i].ticsremaining < 0) {
 						Log.Out(Logs::Detail, Logs::Spells, "Buff %d in slot %d has expired. Fading.", buffs[buffs_i].spellid, buffs_i);
 						BuffFadeBySlot(buffs_i);
 					}
@@ -3388,7 +3413,7 @@ void Mob::BuffProcess()
 			{
 				if(buffs[buffs_i].UpdateClient == true)
 				{
-					CastToClient()->SendBuffDurationPacket(buffs[buffs_i]);
+					CastToClient()->SendBuffDurationPacket(buffs[buffs_i], buffs_i);
 					// Hack to get UF to play nicer, RoF seems fine without it
 					if (CastToClient()->ClientVersion() == EQEmu::versions::ClientVersion::UF && buffs[buffs_i].numhits > 0)
 						CastToClient()->SendBuffNumHitPacket(buffs[buffs_i], buffs_i);
@@ -3635,7 +3660,8 @@ void Mob::DoBuffTic(const Buffs_Struct &buff, int slot, Mob *caster)
 		}
 		case SE_InterruptCasting: {
 			if (IsCasting()) {
-				if (zone->random.Roll(spells[buff.spellid].base[i])) {
+				const auto &spell = spells[casting_spell_id];
+				if (!spell.cast_not_standing && zone->random.Roll(spells[buff.spellid].base[i])) {
 					InterruptSpell();
 				}
 			}
@@ -3655,16 +3681,6 @@ void Mob::DoBuffTic(const Buffs_Struct &buff, int slot, Mob *caster)
 
 			if (IsClient() && (CastToClient()->ClientVersionBit() & EQEmu::versions::bit_SoDAndLater))
 				CastToClient()->LocateCorpse();
-		}
-		case SE_TotalHP: {
-			if (spell.formula[i] > 1000 && spell.formula[i] < 1999) {
-				// These formulas can affect Max HP each tick
-				// Maybe there is a more efficient way to recalculate this for just Max HP each tic...
-				// CalcBonuses();
-				CalcSpellBonuses(&spellbonuses);
-				CalcMaxHP();
-			}
-			break;
 		}
 
 		case SE_DistanceRemoval: {
@@ -3702,6 +3718,14 @@ void Mob::DoBuffTic(const Buffs_Struct &buff, int slot, Mob *caster)
 		if (!IsValidSpell(buff.spellid)) // if we faded we're no longer valid!
 			break;
 	}
+
+	/* Is this the best place for this?
+	 * Ideally we would only recalc spell bonuses
+	 * but we would also have to call all the Calc functions like Max HP
+	 * so lets just call the main CalcBonuses
+	 */
+	if (degenerating_effects)
+		CalcBonuses();
 }
 
 // removes the buff in the buff slot 'slot'
@@ -4137,6 +4161,8 @@ void Mob::BuffFadeBySlot(int slot, bool iRecalcBonuses)
 		CastToClient()->FastQueuePacket(&outapp);
 	}
 
+	// we will eventually call CalcBonuses() even if we skip it right here, so should correct itself if we still have them
+	degenerating_effects = false;
 	if (iRecalcBonuses)
 		CalcBonuses();
 }
@@ -6731,9 +6757,11 @@ void Mob::CalcSpellPowerDistanceMod(uint16 spell_id, float range, Mob* caster)
 		else
 			distance = sqrt(range);
 
+		distance = EQEmu::Clamp(distance, spells[spell_id].min_dist, spells[spell_id].max_dist);
+
 		float dm_range = spells[spell_id].max_dist - spells[spell_id].min_dist;
 		float dm_mod_interval = spells[spell_id].max_dist_mod - spells[spell_id].min_dist_mod;
-		float dist_from_min = distance -  spells[spell_id].min_dist;
+		float dist_from_min = distance - spells[spell_id].min_dist;
 		float mod = spells[spell_id].min_dist_mod + (dist_from_min * (dm_mod_interval/dm_range));
 		mod *= 100.0f;
 
